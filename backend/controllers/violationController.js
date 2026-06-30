@@ -73,11 +73,32 @@ const getRecentAlerts = async (req, res) => {
   }
 };
 
+const deleteViolation = async (req, res) => {
+  try {
+    const violation = await Violation.findByIdAndDelete(
+      req.params.id
+    );
 
+    if (!violation) {
+      return res.status(404).json({
+        message: "Violation not found",
+      });
+    }
+
+    res.json({
+      message: "Violation deleted",
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
 
 module.exports = {
   createViolation,
   getViolations,
   getStats,
   getRecentAlerts,
+  deleteViolation,
 };

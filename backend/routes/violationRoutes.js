@@ -7,6 +7,7 @@ const {
   getViolations,
   getStats,
   getRecentAlerts,
+  deleteViolation,
 } = require("../controllers/violationController");
 
 // Create violation
@@ -21,5 +22,6 @@ router.get("/stats", getStats);
 // Get recent alerts
 router.get("/recent-alerts", getRecentAlerts);
 
+router.delete("/:id", deleteViolation);
 
 module.exports = router;
