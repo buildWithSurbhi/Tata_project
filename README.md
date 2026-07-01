@@ -12,11 +12,11 @@ Develop an AI-powered operator safety monitoring system that detects PPE violati
 - Analytics & Reporting
 
 ## Team
-- M1: PPE Detection
-- M2: Fatigue Detection
-- M3: Backend Development
-- M4: Frontend Development
-- M5: Documentation & Project Coordination
+- M1(Nitesh): PPE Detection
+- M2(Sudhanshu): Fatigue Detection
+- M3(Sneham): Backend Development
+- M4(Surbhi): Frontend Development
+- M5 (Nihira): Documentation & Project Coordination
 
 ## Status
 🚧 Under Development

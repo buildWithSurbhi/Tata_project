@@ -46,13 +46,9 @@ useEffect(() => {
             }}
           >
             <img
-              src="https://images.unsplash.com/photo-1567789884554-0b844b597180"
-              alt="Live Feed"
-              style={{
-                width: "100%",
-                borderRadius: "10px"
-              }}
-            />
+  src="http://localhost:5001/video_feed"
+  alt="Live Feed"
+/>
           </div>
 
           <div

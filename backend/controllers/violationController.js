@@ -31,25 +31,29 @@ const getViolations = async (req, res) => {
 // Get statistics
 const getStats = async (req, res) => {
   try {
-    const totalViolations = await Violation.countDocuments();
+    const totalViolations =
+      await Violation.countDocuments();
 
-    const helmet = await Violation.countDocuments({
-      violationType: "helmet_missing",
-    });
+    const helmet =
+      await Violation.countDocuments({
+        violationType: "helmet_missing",
+      });
 
-    const fatigue = await Violation.countDocuments({
-      violationType: "fatigue",
-    });
+    const mask =
+      await Violation.countDocuments({
+        violationType: "mask_missing",
+      });
 
-    const phone = await Violation.countDocuments({
-      violationType: "phone_usage",
-    });
+    const vest =
+      await Violation.countDocuments({
+        violationType: "vest_missing",
+      });
 
     res.json({
       totalViolations,
       helmet,
-      fatigue,
-      phone,
+      mask,
+      vest,
     });
   } catch (error) {
     res.status(500).json({

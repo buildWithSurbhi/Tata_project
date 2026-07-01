@@ -1,3 +1,6 @@
+import { useState, useEffect } from "react";
+import API from "../services/api";
+
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 
@@ -9,58 +12,106 @@ import {
 } from "react-icons/fa";
 
 function Dashboard() {
+  const [stats, setStats] = useState({
+  totalViolations: 0,
+  helmet: 0,
+  mask: 0,
+  vest: 0
+});
+const fetchStats = async () => {
+  try {
+    const response =
+      await API.get("/violations/stats");
+
+    setStats(response.data);
+
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+const fetchAlerts = async () => {
+  try {
+
+    const response =
+      await API.get("/violations/recent-alerts");
+
+    setAlerts(response.data);
+
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+const [alerts, setAlerts] = useState([]);
+useEffect(() => {
+
+  fetchStats();
+  fetchAlerts();
+
+  const interval = setInterval(() => {
+
+    fetchStats();
+    fetchAlerts();
+
+  }, 5000);
+
+  return () => clearInterval(interval);
+
+}, []);
   return (
     <div className="dashboard-layout">
       <Sidebar />
       <div className="main-content">
         <Navbar />
         {/* TOP STATS */}
-        <div className="top-stats">
-          <div className="cyber-card">
-            <div className="card-icon">
-              <FaUsers />
-            </div>
+<div className="top-stats">
 
-            <div>
-              <p>ACTIVE OPERATORS</p>
-              <h2>14</h2>
-            </div>
-          </div>
+  <div className="cyber-card">
+    <div className="card-icon">
+      <FaUsers />
+    </div>
 
-          <div className="cyber-card">
-            <div className="card-icon yellow">
-              <FaShieldAlt />
-            </div>
+    <div>
+      <p>TOTAL VIOLATIONS</p>
+      <h2>{stats.totalViolations}</h2>
+    </div>
+  </div>
 
-            <div>
-              <p>PPE COMPLIANCE RATE</p>
-              <h2>94.2%</h2>
-            </div>
-          </div>
+  <div className="cyber-card">
+    <div className="card-icon yellow">
+      <FaShieldAlt />
+    </div>
 
-          <div className="cyber-card">
-            <div className="card-icon red">
-              <FaExclamationTriangle />
-            </div>
+    <div>
+      <p>HELMET VIOLATIONS</p>
+      <h2>{stats.helmet}</h2>
+    </div>
+  </div>
 
-            <div>
-              <p>ACTIVE VIOLATIONS</p>
-              <h2>2</h2>
-            </div>
-          </div>
+  <div className="cyber-card">
+    <div className="card-icon red">
+      <FaExclamationTriangle />
+    </div>
 
-          <div className="cyber-card">
-            <div className="card-icon yellow">
-              <FaBed />
-            </div>
+    <div>
+      <p>MASK VIOLATIONS</p>
+      <h2>{stats.mask}</h2>
+    </div>
+  </div>
 
-            <div>
-              <p>FATIGUE ALERTS TODAY</p>
-              <h2>5</h2>
-            </div>
-          </div>
+  <div className="cyber-card">
+    <div className="card-icon yellow">
+      <FaBed />
+    </div>
 
-        </div>
+    <div>
+      <p>VEST VIOLATIONS</p>
+      <h2>{stats.vest}</h2>
+    </div>
+  </div>
+
+</div>
 
         {/* MAIN SECTION */}
 
@@ -78,9 +129,9 @@ function Dashboard() {
             </div>
             <div className="camera-container">
               <img
-                src="https://images.unsplash.com/photo-1517048676732-d65bc937f952"
-                alt=""
-              />
+  src="http://localhost:5001/video_feed"
+  alt="Live AI Feed"
+/>
               <div className="fps-box">
 
                 <p>FPS: 60.2</p>
@@ -95,18 +146,31 @@ function Dashboard() {
             <div className="alert-header">
               <h2>📢 Real-Time Alert Feed</h2>
             </div>
-            <div className="alert-item critical">
-              <h4>CRITICAL</h4>
-              <p>No Safety Vest Detected</p>
-            </div>
-            <div className="alert-item warning">
-              <h4>WARNING</h4>
-              <p>Forklift Proximity Alert</p>
-            </div>
-            <div className="alert-item warning">
-              <h4>WARNING</h4>
-              <p>Loose Chin Strap</p>
-            </div>
+            {alerts.map((alert) => (
+
+  <div
+    key={alert._id}
+    className={`alert-item ${
+  alert.severity === "high"
+    ? "critical"
+    : "warning"
+}`}
+  >
+
+    <h4>
+      {alert.severity.toUpperCase()}
+    </h4>
+
+   <p>
+  {alert.violationType
+    .replace("_", " ")
+    .replace(/\b\w/g, c => c.toUpperCase())
+  }
+</p>
+
+  </div>
+
+))}
             <button className="export-btn">
               Export Session Logs
             </button>

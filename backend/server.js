@@ -3,6 +3,7 @@ const cors = require("cors");
 require("dotenv").config();
 const aiRoutes = require("./routes/aiRoutes");
 
+
 const connectDB = require("./config/db");
 const violationRoutes = require("./routes/violationRoutes");
 

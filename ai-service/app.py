@@ -1,7 +1,12 @@
-from flask import Flask, jsonify
+from flask import Response
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 
+import cv2
+import numpy as np
+
 from detector import PPEDetector
+from violation import check_worker_ppe
 from response_builder import build_response
 
 app = Flask(__name__)
@@ -13,6 +18,39 @@ CORS(app)
 print("Loading YOLO Model...")
 detector = PPEDetector()
 print("Model Loaded Successfully!")
+
+# =====================================
+# Camera Stream
+# =====================================
+
+camera = cv2.VideoCapture(0)
+
+def generate_frames():
+
+    while True:
+
+        success, frame = camera.read()
+
+        if not success:
+            break
+
+        results = detector.detect(frame)
+
+        annotated = results[0].plot()
+
+        ret, buffer = cv2.imencode(
+            ".jpg",
+            annotated
+        )
+
+        frame_bytes = buffer.tobytes()
+
+        yield (
+            b'--frame\r\n'
+            b'Content-Type: image/jpeg\r\n\r\n'
+            + frame_bytes +
+            b'\r\n'
+        )
 
 # =====================================
 # Home Route
@@ -67,6 +105,52 @@ def test_detect():
     ]
 
     return jsonify(build_response(workers))
+# =====================================
+# Real YOLO Detection API
+# =====================================
+@app.route("/detect", methods=["POST"])
+def detect():
+
+    # Check if image is uploaded
+    if "image" not in request.files:
+        return jsonify({
+            "error": "No image uploaded"
+        }), 400
+
+    file = request.files["image"]
+
+    # Convert uploaded image to OpenCV format
+    image_bytes = np.frombuffer(file.read(), np.uint8)
+
+    frame = cv2.imdecode(image_bytes, cv2.IMREAD_COLOR)
+
+    if frame is None:
+        return jsonify({
+            "error": "Invalid image"
+        }), 400
+
+    # Run YOLO Detection
+    results = detector.detect(frame)
+
+    # Check PPE Status
+    workers = check_worker_ppe(results, detector.model)
+
+    # Convert to Backend JSON Format
+    response = build_response(workers)
+
+    return jsonify(response)
+
+# =====================================
+# Video Stream Route
+# =====================================
+
+@app.route("/video_feed")
+def video_feed():
+
+    return Response(
+        generate_frames(),
+        mimetype="multipart/x-mixed-replace; boundary=frame"
+    )
 
 
 # =====================================
@@ -78,3 +162,4 @@ if __name__ == "__main__":
         port=5001,
         debug=True
     )
+
