@@ -547,3 +547,93 @@ h1,h2{
 
   cursor:pointer;
 }
+
+
+.history-panel {
+  margin-top: 30px;
+  background: #111827;
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.history-table th,
+.history-table td {
+  padding: 12px;
+  border-bottom: 1px solid #333;
+  text-align: left;
+}
+
+.severity {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-weight: bold;
+}
+
+.severity.low {
+  background: #facc15;
+  color: black;
+}
+
+.severity.medium {
+  background: orange;
+  color: white;
+}
+
+.severity.high {
+  background: red;
+  color: white;
+}
+
+.chart-panel {
+  margin-top: 20px;
+  background: #111827;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.chart-panel h2 {
+  margin-bottom: 20px;
+}
+
+.camera-controls{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:15px;
+}
+
+.camera-btn{
+  border:none;
+  padding:8px 16px;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:600;
+}
+
+.start-btn{
+  background:#22c55e;
+  color:white;
+}
+
+.stop-btn{
+  background:#ef4444;
+  color:white;
+}
+
+.camera-status{
+  font-weight:700;
+  margin-left:auto;
+}
+
+.online{
+  color:#22c55e;
+}
+
+.offline{
+  color:#ef4444;
+}

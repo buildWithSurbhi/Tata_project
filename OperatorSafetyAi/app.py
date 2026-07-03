@@ -4,6 +4,40 @@ from scipy.spatial import distance
 import warnings
 import json
 from datetime import datetime
+import requests
+import time
+
+BACKEND_URL = "http://localhost:5000/api/violations"
+last_fatigue_alert = 0
+
+def send_fatigue_violation(confidence, severity):
+    global last_fatigue_alert
+
+    current_time = time.time()
+
+    # prevent sending every frame
+    if current_time - last_fatigue_alert < 30:
+        return
+
+    last_fatigue_alert = current_time
+
+    payload = {
+        "workerId": "101",
+        "violationType": "fatigue",
+        "confidence": confidence,
+        "severity": severity
+    }
+
+    try:
+        response = requests.post(
+            BACKEND_URL,
+            json=payload
+        )
+
+        print("Violation Sent:", response.status_code)
+
+    except Exception as e:
+        print("Backend Error:", e)
 
 warnings.filterwarnings("ignore")
 
@@ -53,11 +87,18 @@ def eye_aspect_ratio(eye):
 
 cap = cv2.VideoCapture(0)
 
+print("Camera opened:", cap.isOpened())
+
+if not cap.isOpened():
+    print("ERROR: Camera not detected")
+    exit()
+
 while True:
 
     success, frame = cap.read()
 
     if not success:
+        print("Frame read failed")
         break
 
     rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -225,19 +266,7 @@ while True:
             )
 
             # Fatigue Alert
-            # if warning == "DROWSINESS DETECTED":
-
-            #  cv2.rectangle(frame, (0, 0), (w, h), (0, 0, 255), 8)
-
-            # cv2.putText(
-            # frame,
-            # "FATIGUE ALERT",
-            # (120, 300),
-            # cv2.FONT_HERSHEY_SIMPLEX,
-            # 1.3,
-            # (0, 0, 255),
-            # 3
-            # )
+            
 
             # Display Drowsiness Status
             cv2.putText(
@@ -270,6 +299,21 @@ while True:
                 fatigue = "NORMAL"
                 fatigue_color = (0, 255, 0)
                 confidence = 0
+
+
+
+            # Send violation to backend
+        if fatigue == "HIGH":
+            send_fatigue_violation(
+                confidence=0.95,
+                severity="high"
+            )
+
+        elif fatigue == "MEDIUM":
+            send_fatigue_violation(
+                confidence=0.90,
+                severity="medium"
+            )
 
             # Display Fatigue Level
             cv2.putText(

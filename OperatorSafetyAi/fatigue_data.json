@@ -1,0 +1,6 @@
+{
+    "workerId": "101",
+    "violationType": "fatigue_detected",
+    "confidence": 0.9,
+    "severity": "medium"
+}
