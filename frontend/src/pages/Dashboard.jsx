@@ -116,7 +116,7 @@ const sendFrameToAI = async () => {
   try {
 
     const response = await fetch(
-      "http://localhost:5001/detect-frame",
+      "https://edge-ai-operator-safety-system-3.onrender.com/detect-frame",
       {
         method: "POST",
         headers: {

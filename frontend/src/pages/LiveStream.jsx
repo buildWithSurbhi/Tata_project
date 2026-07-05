@@ -26,7 +26,7 @@ function LiveStream() {
     if (!imageSrc) return;
 
     try {
-      const response = await fetch("http://localhost:5001/detect-frame", {
+      const response = await fetch("https://edge-ai-operator-safety-system-3.onrender.com", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

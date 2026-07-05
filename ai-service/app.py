@@ -15,7 +15,7 @@ from response_builder import build_response
 import requests
 import time
 
-BACKEND_URL = "http://localhost:5000/api/violations"
+BACKEND_URL = "https://edge-ai-operator-safety-system-3.onrender.com"
 
 last_alert_time = 0
 

@@ -7,7 +7,7 @@ from datetime import datetime
 import requests
 import time
 
-BACKEND_URL = "http://localhost:5000/api/violations"
+BACKEND_URL = "https://edge-ai-operator-safety-system-3.onrender.com"
 last_fatigue_alert = 0
 
 def send_fatigue_violation(confidence, severity):

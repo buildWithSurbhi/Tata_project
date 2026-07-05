@@ -2,7 +2,7 @@ import cv2
 import requests
 import time
 
-BACKEND_URL = "http://localhost:5000/api/violations"
+BACKEND_URL = "https://edge-ai-operator-safety-system-3.onrender.com"
 
 cap = cv2.VideoCapture(0)
 

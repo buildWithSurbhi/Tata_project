@@ -1,7 +1,5 @@
 import axios from "axios";
 
-const API = axios.create({
-  baseURL: "http://localhost:5000/api"
+export default axios.create({
+  baseURL: "https://edge-ai-operator-safety-system-3.onrender.com"
 });
-
-export default API;
