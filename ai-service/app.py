@@ -2,13 +2,16 @@ import base64
 from flask import Response
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-
-import cv2
 import numpy as np
 
-from mediapipe.python.solutions import face_mesh
+import cv2
+import mediapipe as mp
 
-mp_face_mesh = face_mesh
+print("MediaPipe module:", mp)
+print("MediaPipe file:", getattr(mp, "__file__", "No file"))
+print("MediaPipe dir:", dir(mp))
+
+# mp_face_mesh = face_mesh
 from scipy.spatial import distance
 
 from detector import PPEDetector
