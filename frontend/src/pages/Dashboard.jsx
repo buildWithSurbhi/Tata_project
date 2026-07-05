@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import Webcam from "react-webcam";
 import API from "../services/api";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
@@ -13,7 +14,9 @@ import {
 } from "react-icons/fa";
 
 function Dashboard() {
-  const audioRef = useRef(new Audio("/alarm.mp3"));
+  const audioRef = useRef(
+  new Audio("/alarm.mp3")
+);
 
   const [stats, setStats] = useState({
     totalViolations: 0,
@@ -22,28 +25,55 @@ function Dashboard() {
     vest: 0,
     fatigue: 0
   });
-
   const [alerts, setAlerts] = useState([]);
-  const [lastAlertId, setLastAlertId] = useState(null);
-  const [violations, setViolations] = useState([]);
-  const [cameraOn, setCameraOn] = useState(true);
+  const [aiResult, setAiResult] = useState(null);
+  const webcamRef = useRef(null);
 
-  const fetchStats = async () => {
-    try {
-      const response = await API.get("/violations/stats");
-      setStats(response.data);
-    } catch (error) {
-      console.log(error);
-    }
+const [cameraOn, setCameraOn] = useState(true);
+const [violations, setViolations] = useState([]);
+const [lastAlertId, setLastAlertId] = useState(null);
+
+const [helmetCount, setHelmetCount] = useState(0);
+const [maskCount, setMaskCount] = useState(0);
+const [vestCount, setVestCount] = useState(0);
+const [fatigueCount, setFatigueCount] = useState(0);
+const [totalViolations, setTotalViolations] = useState(0);
+  
+useEffect(() => {
+  fetchStats();
+  fetchAlerts();
+  fetchViolations();
+
+  const interval = setInterval(() => {
+    fetchStats();
+    fetchAlerts();
+    fetchViolations();
+  }, 5000);
+
+  const aiInterval = setInterval(() => {
+    sendFrameToAI();
+  }, 1000);
+
+  return () => {
+    clearInterval(interval);
+    clearInterval(aiInterval);
   };
+}, []);
+const fetchStats = async () => {
+  try {
+    const response = await API.get("/violations/stats");
 
+    setStats(response.data);
+
+  } catch (error) {
+    console.log(error);
+  }
+};
   const fetchAlerts = async () => {
     try {
       const response = await API.get("/violations/recent-alerts");
       setAlerts(response.data);
-
       const latest = response.data[0];
-
       if (
         latest &&
         latest._id !== lastAlertId &&
@@ -71,30 +101,109 @@ function Dashboard() {
       console.log(error);
     }
   };
+const sendFrameToAI = async () => {
 
-  const startCamera = async () => {
-    try {
-      await fetch("http://localhost:5001/camera/start", {
-        method: "POST"
-      });
-      setCameraOn(true);
-      toast.success("Camera Started");
-    } catch (error) {
-      console.log(error);
-    }
-  };
+  if (!cameraOn) return;
+  if (!webcamRef.current) return;
 
-  const stopCamera = async () => {
-    try {
-      await fetch("http://localhost:5001/camera/stop", {
-        method: "POST"
-      });
-      setCameraOn(false);
-      toast.error("Camera Stopped");
-    } catch (error) {
-      console.log(error);
+  const imageSrc = webcamRef.current.getScreenshot();
+
+  if (!imageSrc) {
+    console.log("No frame captured");
+    return;
+  }
+
+  try {
+
+    const response = await fetch(
+      "http://localhost:5001/detect-frame",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          image: imageSrc
+        })
+      }
+    );
+
+    if (!response.ok) {
+      console.error(
+        "Backend Error:",
+        response.status
+      );
+      return;
     }
-  };
+
+    const data = await response.json();
+
+    setAiResult(data);
+let helmets = 0;
+let masks = 0;
+let vests = 0;
+
+data.workers?.forEach((worker) => {
+
+  if (!worker.helmet) helmets++;
+
+  if (!worker.mask) masks++;
+
+  if (!worker.vest) vests++;
+
+});
+
+setHelmetCount(helmets);
+setMaskCount(masks);
+setVestCount(vests);
+
+const fatigueViolations =
+  data.fatigue === "HIGH" ? 1 : 0;
+
+setFatigueCount(fatigueViolations);
+
+setTotalViolations(
+  helmets +
+  masks +
+  vests +
+  fatigueViolations
+);
+    console.log("========== AI RESPONSE ==========");
+    console.log(data);
+
+    console.log(
+      "Workers Count:",
+      data.workers?.length || 0
+    );
+
+    console.log(
+      "FIRST WORKER:",
+      data.workers?.[0]
+    );
+
+    console.log(
+      "Fatigue Status:",
+      data.fatigue
+    );
+
+  } catch (error) {
+
+    console.error(
+      "AI Detection Error:",
+      error
+    );
+
+  }
+};
+const startCamera = () => {
+  setCameraOn(true);
+  toast.success("Camera Started");
+};
+
+  const stopCamera = () => {
+  setCameraOn(false);
+  toast.error("Camera Stopped");
+};
 
   const exportCSV = () => {
     const headers = ["Worker ID", "Violation", "Severity", "Confidence", "Time"];
@@ -110,24 +219,36 @@ function Dashboard() {
     saveAs(blob, "violations_report.csv");
   };
 
-  useEffect(() => {
+useEffect(() => {
+  fetchStats();
+  fetchAlerts();
+  fetchViolations();
+
+  const interval = setInterval(() => {
     fetchStats();
     fetchAlerts();
     fetchViolations();
+  }, 5000);
 
-    const interval = setInterval(() => {
-      fetchStats();
-      fetchAlerts();
-      fetchViolations();
-    }, 5000);
+  // Send webcam frame to AI every second
+  const aiInterval = setInterval(() => {
+    sendFrameToAI();
+  }, 1000);
 
-    return () => clearInterval(interval);
-  }, [lastAlertId]);
+  return () => {
+    clearInterval(interval);
+    clearInterval(aiInterval);
+  };
+
+}, [lastAlertId]);
 
   return (
     <div className="dashboard-layout">
       <Sidebar />
       <div className="main-content">
+        {/* <h1 style={{ color: "red" }}>
+          TEST DASH
+        </h1> */}
         <Navbar />
 
         {/* TOP STATS */}
@@ -138,7 +259,7 @@ function Dashboard() {
             </div>
             <div>
               <p>TOTAL VIOLATIONS</p>
-              <h2>{stats.totalViolations}</h2>
+<h2>{totalViolations}</h2>
             </div>
           </div>
 
@@ -148,7 +269,7 @@ function Dashboard() {
             </div>
             <div>
               <p>HELMET VIOLATIONS</p>
-              <h2>{stats.helmet}</h2>
+<h2>{helmetCount}</h2>
             </div>
           </div>
 
@@ -158,7 +279,7 @@ function Dashboard() {
             </div>
             <div>
               <p>MASK VIOLATIONS</p>
-              <h2>{stats.mask}</h2>
+<h2>{maskCount}</h2>
             </div>
           </div>
 
@@ -168,7 +289,7 @@ function Dashboard() {
             </div>
             <div>
               <p>FATIGUE VIOLATIONS</p>
-              <h2>{stats.fatigue}</h2>
+<h2>{fatigueCount}</h2>
             </div>
           </div>
         </div>
@@ -201,9 +322,56 @@ function Dashboard() {
                 </div>
               </div>
             </div>
-            <div className="camera-container">
-              <img src="http://localhost:5001/video_feed" alt="Live AI Feed" />
-              <div className="fps-box">
+<div className="camera-container">
+
+  {cameraOn ? (
+    <>
+      <Webcam
+        ref={webcamRef}
+        screenshotFormat="image/jpeg"
+        style={{
+          width: "100%",
+          borderRadius: "12px"
+        }}
+      />
+<div
+  style={{
+    color: aiResult ? "#00ff88" : "#ff4444",
+    marginTop: "10px",
+    fontWeight: "bold"
+  }}
+>
+  AI Status:
+  {aiResult ? " Connected" : " Disconnected"}
+</div>
+
+<div
+  style={{
+    color: "white",
+    marginTop: "10px"
+  }}
+>
+  Workers Detected:
+  {aiResult?.workers?.length || 0}
+</div>
+
+    </>
+  ) : (
+    <div
+      style={{
+        height: "500px",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        color: "white",
+        fontSize: "24px"
+      }}
+    >
+      Camera Off
+    </div>
+  )}
+           <div className="fps-box">
+            
                 <p>FPS: 60.2</p>
                 <p>LATENCY: 42ms</p>
                 <p>STREAM: 4K_UHD</p>
@@ -212,29 +380,37 @@ function Dashboard() {
           </div>
 
           {/* RIGHT */}
-          <div className="alert-feed">
-            <div className="alert-header">
-              <h2>📢 Real-Time Alert Feed</h2>
-            </div>
-            {alerts.map(alert => (
-              <div
-                key={alert._id}
-                className={`alert-item ${
-                  alert.severity === "high" ? "critical" : "warning"
-                }`}
-              >
-                <h4>{alert.severity.toUpperCase()}</h4>
-                <p>
-                  {alert.violationType
-                    .replace("_", " ")
-                    .replace(/\b\w/g, c => c.toUpperCase())}
-                </p>
-              </div>
-            ))}
-            <button className="export-btn" onClick={exportCSV}>
-              Export Session Logs
-            </button>
-          </div>
+       <div className="alert-feed">
+
+  <h2>📢 Real-Time Alert Feed</h2>
+
+  {!aiResult && (
+    <div className="alert-item">
+      Waiting for AI data...
+    </div>
+  )}
+
+  {aiResult?.fatigue === "HIGH" && (
+    <div className="alert-item critical">
+      <h4>😴 FATIGUE ALERT</h4>
+      <p>Operator Drowsiness Detected</p>
+    </div>
+  )}
+
+  {aiResult?.workers?.map((worker) => (
+    <div
+      key={worker.id}
+      className="alert-item critical"
+    >
+      <h4>⚠ Worker #{worker.id}</h4>
+
+      <p>
+        {worker.violations.join(", ")}
+      </p>
+    </div>
+  ))}
+
+</div>
 
           {/* HISTORY PANEL */}
           <div className="history-panel">

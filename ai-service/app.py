@@ -1,3 +1,4 @@
+import base64
 from flask import Response
 from flask import Flask, jsonify, request
 from flask_cors import CORS
@@ -61,13 +62,11 @@ def eye_aspect_ratio(eye):
 # Camera Stream
 # =====================================
 
-camera = cv2.VideoCapture(0)
+#camera = cv2.VideoCapture(0)
 camera_running = True
 
 def generate_frames():
-
     while True:
-
         global camera_running
 
         if not camera_running:
@@ -92,10 +91,7 @@ def generate_frames():
         fatigue_results = face_mesh.process(rgb)
 
         if fatigue_results.multi_face_landmarks:
-            #print("Face detected")
-
             for face_landmarks in fatigue_results.multi_face_landmarks:
-
                 h, w, _ = annotated.shape
 
                 left_eye = []
@@ -115,8 +111,6 @@ def generate_frames():
                 right_ear = eye_aspect_ratio(right_eye)
 
                 ear = (left_ear + right_ear) / 2
-                #print("EAR =", ear)
-                print("Threshold =", EAR_THRESHOLD)
                 cv2.putText(
                     annotated,
                     f"EAR: {ear:.2f}",
@@ -128,19 +122,13 @@ def generate_frames():
                 )
                 if ear < EAR_THRESHOLD:
                     drowsy_frames += 1
-                    print("Eyes Closed | Frames =", drowsy_frames)
                 else:
                     drowsy_frames = 0
-                    print("Eyes Open | Frames =", drowsy_frames)
                 if drowsy_frames >= DROWSY_THRESHOLD:
-                    print("Current drowsy frames:", drowsy_frames)
-
                     global last_alert_time
-
                     current_time = time.time()
 
                     if current_time - last_alert_time > 30:
-
                         try:
                             requests.post(
                                 BACKEND_URL,
@@ -151,11 +139,7 @@ def generate_frames():
                                     "severity": "high"
                                 }
                             )
-
-                            print("Fatigue sent to backend")
-
                             last_alert_time = current_time
-
                         except Exception as e:
                             print("Backend Error:", e)
 
@@ -177,31 +161,7 @@ def generate_frames():
                         5
                     )
 
-                    cv2.putText(
-                    annotated,
-                    f"EAR: {ear:.2f}",
-                    (20, 40),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.8,
-                    (0,255,0),
-                    2
-                )
-
-                    cv2.putText(
-                    annotated,
-                    f"Drowsy Frames: {drowsy_frames}",
-                    (20, 80),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.8,
-                    (0,255,255),
-                    2
-                )
-
-        ret, buffer = cv2.imencode(
-            ".jpg",
-            annotated
-        )
-
+        ret, buffer = cv2.imencode(".jpg", annotated)
         frame_bytes = buffer.tobytes()
 
         yield (
@@ -212,7 +172,7 @@ def generate_frames():
         )
 
 # =====================================
-# Home Route
+# Routes
 # =====================================
 @app.route("/")
 def home():
@@ -222,10 +182,6 @@ def home():
         "version": "1.0"
     })
 
-
-# =====================================
-# Health Check
-# =====================================
 @app.route("/health")
 def health():
     return jsonify({
@@ -234,14 +190,8 @@ def health():
         "server": "Flask"
     })
 
-
-# =====================================
-# Temporary Detection API
-# (Used before connecting real YOLO)
-# =====================================
 @app.route("/test-detect")
 def test_detect():
-
     workers = [
         {
             "id": 101,
@@ -262,83 +212,109 @@ def test_detect():
             "vest_confidence": 0.95
         }
     ]
-
     return jsonify(build_response(workers))
-# =====================================
-# Real YOLO Detection API
-# =====================================
+
 @app.route("/detect", methods=["POST"])
 def detect():
-
-    # Check if image is uploaded
     if "image" not in request.files:
-        return jsonify({
-            "error": "No image uploaded"
-        }), 400
+        return jsonify({"error": "No image uploaded"}), 400
 
     file = request.files["image"]
-
-    # Convert uploaded image to OpenCV format
     image_bytes = np.frombuffer(file.read(), np.uint8)
-
     frame = cv2.imdecode(image_bytes, cv2.IMREAD_COLOR)
 
     if frame is None:
-        return jsonify({
-            "error": "Invalid image"
-        }), 400
+        return jsonify({"error": "Invalid image"}), 400
 
-    # Run YOLO Detection
     results = detector.detect(frame)
-
-    # Check PPE Status
     workers = check_worker_ppe(results, detector.model)
-
-    # Convert to Backend JSON Format
     response = build_response(workers)
 
     return jsonify(response)
 
-# =====================================
-# Video Stream Route
-# =====================================
-
 @app.route("/video_feed")
 def video_feed():
-
     return Response(
         generate_frames(),
         mimetype="multipart/x-mixed-replace; boundary=frame"
     )
 
-
-# =====================================
-# Run Flask
-# =====================================
 @app.route("/camera/start", methods=["GET", "POST"])
 def start_camera():
-
     global camera_running
-
     camera_running = True
+    return jsonify({"message": "Camera Started"})
 
-    return jsonify({
-        "message": "Camera Started"
-    })
 @app.route("/camera/stop", methods=["GET", "POST"])
 def stop_camera():
-
     global camera_running
-
     camera_running = False
+    return jsonify({"message": "Camera Stopped"})
+
+@app.route("/detect-frame", methods=["POST"])
+def detect_frame():
+    data = request.json
+    if not data:
+        return jsonify({"error": "No frame"}), 400
+
+    image_data = data["image"]
+    image_data = image_data.split(",")[1]
+    image_bytes = base64.b64decode(image_data)
+
+    np_arr = np.frombuffer(image_bytes, np.uint8)
+    frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+    if frame is None:
+        return jsonify({"error": "Invalid frame"}), 400
+
+    results = detector.detect(frame)
+    workers = check_worker_ppe(results, detector.model)
+
+    fatigue_status = "NORMAL"
+    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    fatigue_results = face_mesh.process(rgb)
+
+    global drowsy_frames
+    if fatigue_results.multi_face_landmarks:
+        for face_landmarks in fatigue_results.multi_face_landmarks:
+            h, w, _ = frame.shape
+            left_eye = []
+            right_eye = []
+
+            for idx in LEFT_EYE:
+                x = int(face_landmarks.landmark[idx].x * w)
+                y = int(face_landmarks.landmark[idx].y * h)
+                left_eye.append((x, y))
+
+            for idx in RIGHT_EYE:
+                x = int(face_landmarks.landmark[idx].x * w)
+                y = int(face_landmarks.landmark[idx].y * h)
+                right_eye.append((x, y))
+
+            left_ear = eye_aspect_ratio(left_eye)
+            right_ear = eye_aspect_ratio(right_eye)
+            ear = (left_ear + right_ear) / 2
+
+            if ear < EAR_THRESHOLD:
+                drowsy_frames += 1
+            else:
+                drowsy_frames = 0
+
+            if drowsy_frames >= DROWSY_THRESHOLD:
+                fatigue_status = "HIGH"
+
+    # ✅ Added debug prints
+    print("Workers:", workers)
+    print("Fatigue:", fatigue_status)
 
     return jsonify({
-        "message": "Camera Stopped"
+        "workers": workers,
+        "fatigue": fatigue_status
     })
+
 if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=5001,
         debug=True
     )
-

@@ -637,3 +637,32 @@ h1,h2{
 .offline{
   color:#ef4444;
 }
+
+.alert-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.alert-item {
+  padding: 12px;
+  border-radius: 10px;
+  color: white;
+}
+
+.alert-item.critical {
+  background: #dc2626;
+}
+
+.alert-item.warning {
+  background: #f59e0b;
+}
+
+.alert-item h4 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.alert-item p {
+  margin: 5px 0 0;
+}
