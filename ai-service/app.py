@@ -6,6 +6,7 @@ import numpy as np
 
 import cv2
 import mediapipe as mp
+print("MediaPipe version:", mp.__version__)
 
 print("MediaPipe module:", mp)
 print("MediaPipe file:", getattr(mp, "__file__", "No file"))
