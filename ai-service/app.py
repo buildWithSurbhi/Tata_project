@@ -6,7 +6,9 @@ from flask_cors import CORS
 import cv2
 import numpy as np
 
-import mediapipe as mp
+from mediapipe.python.solutions import face_mesh
+
+mp_face_mesh = face_mesh
 from scipy.spatial import distance
 
 from detector import PPEDetector
@@ -18,7 +20,9 @@ import time
 BACKEND_URL = "https://edge-ai-operator-safety-system-3.onrender.com"
 
 last_alert_time = 0
-
+print("MediaPipe:", mp)
+print("Location:", mp.__file__)
+print("Attributes:", dir(mp))
 app = Flask(__name__)
 CORS(app)
 
