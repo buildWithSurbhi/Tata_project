@@ -55,71 +55,71 @@ def eye_aspect_ratio(eye):
 # =====================================
 # Camera Stream
 # =====================================
-camera = cv2.VideoCapture(0)
+#camera = cv2.VideoCapture(0)
 camera_running = True
 
-def generate_frames():
-    global drowsy_frames, last_alert_time
-    while True:
-        if not camera_running:
-            time.sleep(0.1)
-            continue
+# def generate_frames():
+#     global drowsy_frames, last_alert_time
+#     while True:
+#         if not camera_running:
+#             time.sleep(0.1)
+#             continue
 
-        success, frame = camera.read()
-        if not success:
-            break
+#         success, frame = camera.read()
+#         if not success:
+#             break
 
-        results = detector.detect(frame)
-        annotated = results[0].plot()
+#         results = detector.detect(frame)
+#         annotated = results[0].plot()
 
-        rgb = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
-        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
-        fatigue_results = face_landmarker.detect(mp_image)
+#         rgb = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
+#         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+#         fatigue_results = face_landmarker.detect(mp_image)
 
-        if fatigue_results.face_landmarks:
-            h, w, _ = annotated.shape
-            landmarks = fatigue_results.face_landmarks[0]
+#         if fatigue_results.face_landmarks:
+#             h, w, _ = annotated.shape
+#             landmarks = fatigue_results.face_landmarks[0]
 
-            left_eye = [(int(landmarks[idx].x * w), int(landmarks[idx].y * h)) for idx in LEFT_EYE]
-            right_eye = [(int(landmarks[idx].x * w), int(landmarks[idx].y * h)) for idx in RIGHT_EYE]
+#             left_eye = [(int(landmarks[idx].x * w), int(landmarks[idx].y * h)) for idx in LEFT_EYE]
+#             right_eye = [(int(landmarks[idx].x * w), int(landmarks[idx].y * h)) for idx in RIGHT_EYE]
 
-            left_ear = eye_aspect_ratio(left_eye)
-            right_ear = eye_aspect_ratio(right_eye)
-            ear = (left_ear + right_ear) / 2
+#             left_ear = eye_aspect_ratio(left_eye)
+#             right_ear = eye_aspect_ratio(right_eye)
+#             ear = (left_ear + right_ear) / 2
 
-            cv2.putText(annotated, f"EAR: {ear:.2f}", (20, 40),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+#             cv2.putText(annotated, f"EAR: {ear:.2f}", (20, 40),
+#                         cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
 
-            if ear < EAR_THRESHOLD:
-                drowsy_frames += 1
-            else:
-                drowsy_frames = 0
+#             if ear < EAR_THRESHOLD:
+#                 drowsy_frames += 1
+#             else:
+#                 drowsy_frames = 0
 
-            if drowsy_frames >= DROWSY_THRESHOLD:
-                current_time = time.time()
-                if current_time - last_alert_time > 30:
-                    try:
-                        requests.post(
-                            BACKEND_URL,
-                            json={
-                                "workerId": "101",
-                                "violationType": "fatigue",
-                                "confidence": 0.95,
-                                "severity": "high"
-                            }
-                        )
-                        last_alert_time = current_time
-                    except Exception as e:
-                        print("Backend Error:", e)
+#             if drowsy_frames >= DROWSY_THRESHOLD:
+#                 current_time = time.time()
+#                 if current_time - last_alert_time > 30:
+#                     try:
+#                         requests.post(
+#                             BACKEND_URL,
+#                             json={
+#                                 "workerId": "101",
+#                                 "violationType": "fatigue",
+#                                 "confidence": 0.95,
+#                                 "severity": "high"
+#                             }
+#                         )
+#                         last_alert_time = current_time
+#                     except Exception as e:
+#                         print("Backend Error:", e)
 
-                cv2.putText(annotated, "FATIGUE DETECTED", (20, 60),
-                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 3)
-                cv2.rectangle(annotated, (0, 0), (w, h), (0, 0, 255), 5)
+#                 cv2.putText(annotated, "FATIGUE DETECTED", (20, 60),
+#                             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 3)
+#                 cv2.rectangle(annotated, (0, 0), (w, h), (0, 0, 255), 5)
 
-        ret, buffer = cv2.imencode(".jpg", annotated)
-        frame_bytes = buffer.tobytes()
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+#         ret, buffer = cv2.imencode(".jpg", annotated)
+#         frame_bytes = buffer.tobytes()
+#         yield (b'--frame\r\n'
+#                b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
 
 # =====================================
 # Routes
@@ -157,21 +157,21 @@ def detect():
     response = build_response(workers)
     return jsonify(response)
 
-@app.route("/video_feed")
-def video_feed():
-    return Response(generate_frames(), mimetype="multipart/x-mixed-replace; boundary=frame")
+# @app.route("/video_feed")
+# def video_feed():
+#     return Response(generate_frames(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
-@app.route("/camera/start", methods=["GET", "POST"])
-def start_camera():
-    global camera_running
-    camera_running = True
-    return jsonify({"message": "Camera Started"})
+# @app.route("/camera/start", methods=["GET", "POST"])
+# def start_camera():
+#     global camera_running
+#     camera_running = True
+#     return jsonify({"message": "Camera Started"})
 
-@app.route("/camera/stop", methods=["GET", "POST"])
-def stop_camera():
-    global camera_running
-    camera_running = False
-    return jsonify({"message": "Camera Stopped"})
+# @app.route("/camera/stop", methods=["GET", "POST"])
+# def stop_camera():
+#     global camera_running
+#     camera_running = False
+#     return jsonify({"message": "Camera Stopped"})
 
 @app.route("/detect-frame", methods=["POST"])
 def detect_frame():
@@ -220,4 +220,8 @@ def detect_frame():
     return jsonify({"workers": workers, "fatigue": fatigue_status})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5001, debug=True)
+    import os
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5001))
+    app.run(host="0.0.0.0", port=port, debug=False)
