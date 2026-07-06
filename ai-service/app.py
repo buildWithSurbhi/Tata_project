@@ -219,9 +219,14 @@ def detect_frame():
 
     return jsonify({"workers": workers, "fatigue": fatigue_status})
 
-if __name__ == "__main__":
-    import os
+# if __name__ == "__main__":
+#     import os
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5001))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(
+    host="0.0.0.0",
+    port=port,
+    debug=False,
+    use_reloader=False
+)
